@@ -25,7 +25,7 @@ func (c commander) Execute(conn net.Conn, data []byte) (shouldQuit bool) {
 
 	switch cmd {
 	case "config get cluster", "get AmazonElasticCache:cluster":
-		conn.Write(c.opClusterConfigResponse(c.n.Nodes(), c.n.Version()))
+		conn.Write(c.opClusterConfigResponse(c.n.Nodes(), fmt.Sprint(c.n.Version())))
 	case "quit":
 		conn.Close()
 		shouldQuit = true

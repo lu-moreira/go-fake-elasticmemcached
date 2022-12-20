@@ -14,27 +14,33 @@ type NodeManager interface {
 	Stop() error
 	//
 	Nodes() []string
-	Version() string
+	Version() int
 }
 
 type dockerNodeManager struct {
 	containers []string
 	nodes      []string
-	version    string
+	version    int
 }
 
 func NewDockerNodeManager() NodeManager {
 	return &dockerNodeManager{
-		version: "1",
+		containers: make([]string, 0),
+		nodes:      make([]string, 0),
+		version:    0,
 	}
 }
 
 func (nm *dockerNodeManager) Start(numberOfNodes int) error {
 	log.Printf("starting %d memcached docker containers\n", numberOfNodes)
+
+	curr_nodes := len(nm.containers) // will serve to us to determine the port
+
+	// new containers and nodes
 	containers := make([]string, numberOfNodes)
 	nodes := make([]string, numberOfNodes)
-	for idx := range nodes {
-		remotePort := fmt.Sprintf("112%d", idx)
+	for idx := 0; idx < numberOfNodes; idx++ {
+		remotePort := fmt.Sprintf("112%d", idx+curr_nodes)
 		cmd := exec.Command("docker", "run", "-d", "-p", fmt.Sprintf("%s:11211", remotePort), "memcached")
 		stdout, err := cmd.StdoutPipe()
 		if err != nil {
@@ -57,8 +63,9 @@ func (nm *dockerNodeManager) Start(numberOfNodes int) error {
 		log.Printf("created memcached container with hash id %s and addr %s\n", containers[idx], fmt.Sprintf("127.0.0.1:%s", remotePort))
 	}
 
-	nm.containers = containers
-	nm.nodes = nodes
+	nm.containers = append(nm.containers, containers...)
+	nm.nodes = append(nm.nodes, nodes...)
+	nm.version++ // update the version
 	return nil
 }
 
@@ -91,6 +98,6 @@ func (nm dockerNodeManager) Nodes() []string {
 	return nm.nodes
 }
 
-func (nm dockerNodeManager) Version() string {
+func (nm dockerNodeManager) Version() int {
 	return nm.version
 }
